@@ -41,7 +41,12 @@
 #        relying on results.
 # ============================================================================
 #
-# `--reach-version=15.2.7` pins Coana to avoid the 15.3.15 backend regression described in the day-one note above. Remove this flag once Socket fixes it.
+# TEST BRANCH: the `--reach-version=15.2.7` pin has been REMOVED here to check
+# whether Socket has fixed the 15.3.15 backend regression described above.
+# Expected outcomes:
+#   - Tier 1 runs and reports real projects/ecosystems -> the pin can be dropped on main.
+#   - RED with "internal error (code=unknown)" during Fetching artifacts -> the
+#     regression persists; restore the pin.
 
 name: Socket reachability scan
 
@@ -87,7 +92,6 @@ jobs:
             --reach-continue-on-analysis-errors \
             --reach-continue-on-install-errors \
             --reach-continue-on-missing-lock-files \
-            --reach-version=15.2.7 \
             . 2>&1 | tee /tmp/scan.log
           rc=${PIPESTATUS[0]}
           if [ $rc -eq 0 ] && grep -qE "Reachability falls back to Tier 2|fallback to the results from the pre-computed|Reachability falls back to precomputed" /tmp/scan.log; then

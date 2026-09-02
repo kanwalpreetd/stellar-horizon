@@ -29,7 +29,12 @@
 # ============================================================================
 # GREEN  (exit 0, no warning): scan completed and every analyzed vulnerability
 #        got full Tier 1 reachability (precise, your-code-aware). Nothing to do.
-# YELLOW (exit 0 + "::warning:: Socket scan completed with Tier 2 fallbacks"):
+# YELLOW (exit 0 + a "::warning::" annotation) — two distinct cases:
+#        (a) "Socket found 0 analyzable projects": Coana analyzed nothing at all,
+#        so there is no Tier 1 reachability. CVE detection from the SBOM still
+#        applies. This is the expected steady state for this repo while the
+#        15.2.7 pin is in place (see the day-one note above).
+#        (b) "Socket scan completed with Tier 2 fallbacks":
 #        scan completed, but Tier 1 could NOT be computed for some/all
 #        vulnerabilities, which fell back to Tier 2 (precomputed) reachability.
 #        You still get CVE detection + Tier 2 results, just reduced precision
@@ -41,12 +46,13 @@
 #        relying on results.
 # ============================================================================
 #
-# TEST BRANCH: the `--reach-version=15.2.7` pin has been REMOVED here to check
-# whether Socket has fixed the 15.3.15 backend regression described above.
-# Expected outcomes:
-#   - Tier 1 runs and reports real projects/ecosystems -> the pin can be dropped on main.
-#   - RED with "internal error (code=unknown)" during Fetching artifacts -> the
-#     regression persists; restore the pin.
+# `--reach-version=15.2.7` pins Coana to avoid the 15.3.15 backend regression
+# described in the day-one note above. Remove this flag once Socket fixes it.
+#
+# TEST BRANCH: adds a check that emits a ::warning:: (yellow) when Coana reports
+# "Found 0 projects across 0 ecosystems", so the SBOM-only outcome stops rendering
+# as a clean green run. Expected result: job succeeds (CVE/SBOM detection runs and
+# uploads normally) but the run is annotated yellow rather than green.
 
 name: Socket reachability scan
 
@@ -92,8 +98,17 @@ jobs:
             --reach-continue-on-analysis-errors \
             --reach-continue-on-install-errors \
             --reach-continue-on-missing-lock-files \
+            --reach-version=15.2.7 \
             . 2>&1 | tee /tmp/scan.log
           rc=${PIPESTATUS[0]}
+          # Coana pinned at 15.2.7 reports "Found 0 projects across 0 ecosystems"
+          # for this repo, so NO Tier 1 reachability runs even though the scan
+          # exits 0. Without this check that renders as a clean green run, which
+          # is misleading. Surface it as a yellow warning instead. CVE/SBOM
+          # detection is unaffected and still happens on the uploaded manifests.
+          if [ $rc -eq 0 ] && grep -qE "Found 0 projects( across 0 ecosystems)?" /tmp/scan.log; then
+            echo "::warning::Socket found 0 analyzable projects - no Tier 1 reachability ran. CVE detection from the SBOM still applies."
+          fi
           if [ $rc -eq 0 ] && grep -qE "Reachability falls back to Tier 2|fallback to the results from the pre-computed|Reachability falls back to precomputed" /tmp/scan.log; then
             echo "::warning::Socket scan completed with Tier 2 fallbacks - some vulnerabilities used precomputed reachability instead of full Tier 1"
           fi

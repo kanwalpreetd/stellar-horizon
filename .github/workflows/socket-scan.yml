@@ -1,22 +1,3 @@
-# ############################################################################
-# TEMPORARY TEST — DO NOT MERGE. Revert before merging.
-#   The jq expression below reads `.nonexistent_test_field` instead of
-#   `.components`, so it always evaluates to 0 and forces the warning branch on
-#   an otherwise completely normal scan.
-#
-#   Why: earlier attempts to make Coana genuinely fail did not work. Pinning
-#   socket@1.1.163 + Coana 15.2.7 (the versions from the 2026-09-01 incident)
-#   still succeeded, and --reach-ecosystems=maven left `components` populated
-#   because project discovery succeeded and only the analysis was skipped.
-#
-#   This tests the part we actually wrote rather than Coana's behaviour: that
-#   --reach-retain-facts-file leaves the report in place, jq is available on the
-#   runner, the ::warning:: is emitted, and the job still exits 0 (yellow, not
-#   red). Expected: green-with-warning, annotated "Socket reported 0
-#   reachability components".
-#
-#   Revert with:  git revert <this commit>
-# ############################################################################
 # Socket reachability scan for stellar-horizon.
 # For general Socket reachability documentation, see https://docs.socket.dev/docs/full-application-reachability
 # Multi-eco: Go (root go.mod) + Rust (Cargo workspace and/or sub-Cargos).
@@ -111,9 +92,7 @@ jobs:
             if [ ! -f .socket.facts.json ]; then
               echo "::warning::Socket scan completed but produced no .socket.facts.json - cannot confirm Tier 1 reachability ran. CVE detection from the SBOM still applies."
             else
-              # TEMPORARY (see TEST note in header): reads a field that does not exist
-              # so this always yields 0 and forces the warning branch.
-              components=$(jq '(.nonexistent_test_field // []) | length' .socket.facts.json 2>/dev/null)
+              components=$(jq '(.components // []) | length' .socket.facts.json 2>/dev/null)
               if ! [ "$components" -ge 0 ] 2>/dev/null; then
                 echo "::warning::Socket scan completed but .socket.facts.json could not be parsed - cannot confirm Tier 1 reachability ran. CVE detection from the SBOM still applies."
               elif [ "$components" -eq 0 ]; then

@@ -1,20 +1,3 @@
-# ############################################################################
-# TEMPORARY TEST FLAG — DO NOT MERGE. Revert before merging.
-#   `--reach-ecosystems=maven` restricts reachability to an ecosystem this repo
-#   does not have, so Coana finds 0 projects and writes a .socket.facts.json
-#   with an empty "components" array while the scan still exits 0. That is the
-#   same end state as the 2026-09-01 incident, but forced deterministically
-#   instead of depending on a transient Socket backend fault.
-#
-#   Precedent: tracy and libsodium pass --reach-ecosystems=cargo as a
-#   placeholder where cargo is absent, and both note that Coana finds 0
-#   projects and completes cleanly.
-#
-#   Purpose: prove the components-based check fires. Expected: job succeeds,
-#   annotated "Socket reported 0 reachability components".
-#
-#   Revert with:  git revert <this commit>
-# ############################################################################
 # Socket reachability scan for stellar-horizon.
 # For general Socket reachability documentation, see https://docs.socket.dev/docs/full-application-reachability
 # Multi-eco: Go (root go.mod) + Rust (Cargo workspace and/or sub-Cargos).
@@ -96,7 +79,6 @@ jobs:
             --reach-continue-on-install-errors \
             --reach-continue-on-missing-lock-files \
             --reach-retain-facts-file \
-            --reach-ecosystems=maven \
             . 2>&1 | tee /tmp/scan.log
           rc=${PIPESTATUS[0]}
           # Establish whether Tier 1 reachability actually ran by inspecting the

@@ -46,13 +46,17 @@
 #        relying on results.
 # ============================================================================
 #
-# `--reach-version=15.2.7` pins Coana to avoid the 15.3.15 backend regression
-# described in the day-one note above. Remove this flag once Socket fixes it.
-#
-# TEST BRANCH: adds a check that emits a ::warning:: (yellow) when Coana reports
-# "Found 0 projects across 0 ecosystems", so the SBOM-only outcome stops rendering
-# as a clean green run. Expected result: job succeeds (CVE/SBOM detection runs and
-# uploads normally) but the run is annotated yellow rather than green.
+# TEST BRANCH — the `--reach-version=15.2.7` pin is REMOVED here, so Coana runs at
+# whatever version the CLI defaults to. Purpose: check whether the 15.3.15 backend
+# regression in the day-one note above is fixed, now that a 15.2.7 run has been
+# observed doing full Go Tier 1 analysis (2026-09-03, CLI v1.1.167).
+# Outcomes:
+#   GREEN, "Found 1 project ... GO" + code-aware analysis -> regression fixed, the
+#     pin can be dropped on main.
+#   YELLOW "found 0 analyzable projects" -> the default Coana no longer detects the
+#     Go project; keep the pin. (This is what the new check below is for.)
+#   RED "internal error (code=unknown)" at Fetching artifacts -> regression persists,
+#     keep the pin.
 
 name: Socket reachability scan
 
@@ -98,14 +102,13 @@ jobs:
             --reach-continue-on-analysis-errors \
             --reach-continue-on-install-errors \
             --reach-continue-on-missing-lock-files \
-            --reach-version=15.2.7 \
             . 2>&1 | tee /tmp/scan.log
           rc=${PIPESTATUS[0]}
-          # Coana pinned at 15.2.7 reports "Found 0 projects across 0 ecosystems"
-          # for this repo, so NO Tier 1 reachability runs even though the scan
-          # exits 0. Without this check that renders as a clean green run, which
-          # is misleading. Surface it as a yellow warning instead. CVE/SBOM
-          # detection is unaffected and still happens on the uploaded manifests.
+          # If Coana reports "Found 0 projects across 0 ecosystems" it analyzed
+          # nothing at all, so there is NO Tier 1 reachability — yet the scan still
+          # exits 0, which would render as a clean green run. That is misleading, so
+          # surface it as a yellow warning. CVE/SBOM detection is unaffected and
+          # still happens on the uploaded manifests.
           if [ $rc -eq 0 ] && grep -qE "Found 0 projects( across 0 ecosystems)?" /tmp/scan.log; then
             echo "::warning::Socket found 0 analyzable projects - no Tier 1 reachability ran. CVE detection from the SBOM still applies."
           fi

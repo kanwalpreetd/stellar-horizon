@@ -82,12 +82,10 @@ jobs:
             . 2>&1 | tee /tmp/scan.log
           rc=${PIPESTATUS[0]}
           # Establish whether Tier 1 reachability actually ran by inspecting the
-          # retained .socket.facts.json, NOT by grepping log wording (which varies
-          # between Coana and CLI versions). When Coana cannot analyze anything the
+          # retained .socket.facts.json. When Coana cannot analyze anything the
           # report is still written but "components" is an empty array; a successful
           # Tier 1 run populates it. Either way the scan exits 0 and CVE/SBOM
-          # detection still happens, so without this check "analyzed nothing" would
-          # render as a clean green run.
+          # detection still happens.
           if [ $rc -eq 0 ]; then
             if [ ! -f .socket.facts.json ]; then
               echo "::warning::Socket scan completed but produced no .socket.facts.json - cannot confirm Tier 1 reachability ran. CVE detection from the SBOM still applies."

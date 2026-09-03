@@ -95,8 +95,6 @@ jobs:
                 echo "::warning::Socket scan completed but .socket.facts.json could not be parsed - cannot confirm Tier 1 reachability ran. CVE detection from the SBOM still applies."
               elif [ "$components" -eq 0 ]; then
                 echo "::warning::Socket reported 0 reachability components - no Tier 1 reachability ran. CVE detection from the SBOM still applies."
-              else
-                echo "Tier 1 reachability ran: $components components in .socket.facts.json"
               fi
             fi
           fi

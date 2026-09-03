@@ -1,3 +1,17 @@
+# ############################################################################
+# TEMPORARY TEST PIN — DO NOT MERGE. Revert before merging.
+#   socket@1.1.163 + --reach-version=15.2.7 reproduce the 2026-09-01 run where
+#   the CVE scan succeeded but Coana reported "Found 0 projects across 0
+#   ecosystems" and wrote a .socket.facts.json with an empty "components"
+#   array — i.e. no Tier 1 reachability, yet exit 0.
+#
+#   Purpose: confirm the components-based check below fires a yellow warning
+#   for that case. Expected: job succeeds, annotated
+#   "Socket reported 0 reachability components".
+#
+#   Revert with:  git revert <this commit>
+#   Good state is the parent commit: CLI unpinned, no --reach-version.
+# ############################################################################
 # Socket reachability scan for stellar-horizon.
 # For general Socket reachability documentation, see https://docs.socket.dev/docs/full-application-reachability
 # Multi-eco: Go (root go.mod) + Rust (Cargo workspace and/or sub-Cargos).
@@ -53,7 +67,7 @@ jobs:
           node-version: "24.18.0"
 
       - name: Install Socket CLI
-        run: npm install -g socket
+        run: npm install -g socket@1.1.163   # TEMPORARY: see TEST PIN note in header
 
       - name: Run Socket reachability scan
         env:
@@ -79,6 +93,7 @@ jobs:
             --reach-continue-on-install-errors \
             --reach-continue-on-missing-lock-files \
             --reach-retain-facts-file \
+            --reach-version=15.2.7 \
             . 2>&1 | tee /tmp/scan.log
           rc=${PIPESTATUS[0]}
           # Establish whether Tier 1 reachability actually ran by inspecting the
